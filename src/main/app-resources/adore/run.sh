@@ -21,7 +21,7 @@ function cleanExit ()
 		$ERR_CURL) msg="Failed to retrieve the products";;
 		$ERR_ADORE) msg="Failed during ADORE execution";;
 		$ERR_PUBLISH) msg="Failed results publish";;
-		$ERR_WRONGPROD) msg="Wrong product provided as input. Please use ASA_IMS_1P";;
+		$ERR_WRONGPROD) msg="Wrong product provided as input [`basename ${SLAVE}`]. Please use ASA_IMS_1P";;
 		*) msg="Unknown error";;
 	esac
 
@@ -30,55 +30,69 @@ function cleanExit ()
 }
 trap cleanExit EXIT
 
-# path and master/slave variable definition
-export ADORESCR=/opt/adore/scr; export PATH=${PATH}:${ADORESCR}:/usr/local/bin
-
-UUID=`uuidgen`
-UUIDTMP="/tmp/${UUID}"
 MASTER="`ciop-getparam adore_master`"
 PROJECT="`ciop-getparam adore_project`"
 
 # let's check if the correct product was provided
 [ "`basename ${MASTER} | cut -c 1-10`" != "ASA_IMS_1P" ] && exit $ERR_WRONGPROD
 
-# creates the adore directory structure
-ciop-log "INFO" "creating the directory structure"
-mkdir -p ${UUIDTMP}
-mkdir ${UUIDTMP}/data
-mkdir ${UUIDTMP}/${PROJECT}
-mkdir ${UUIDTMP}/data/master
-mkdir ${UUIDTMP}/data/slaves
-
-ciop-log "INFO" "basedir is ${UUIDTMP}"
-
-# copies the ODR files
-ciop-log "INFO" "copying the ODR files"
-tar xvfz /application/adore/files/ODR.tgz -C ${UUIDTMP}
-
-# retrieves the files
-ciop-log "INFO" "downloading master [${MASTER}]"
-MASTER=`ciop-copy -f -O ${UUIDTMP}/data/master ${MASTER}`
-res=$?
-
-while read slave
+#retrieving the slave
+while read SLAVE
 do
 	# let's check if the correct product was provided
-	[ "`basename ${MASTER} | cut -c 1-10`" != "ASA_IMS_1P" ] && exit $ERR_WRONGPROD
+	#[ "`basename ${SLAVE} | cut -c 1-10`" != "ASA_IMS_1P" ] && exit $ERR_WRONGPROD
 
-	# let's get the file date from the name
-	SLAVE_ID=`basename ${slave} | cut -c 15-22`
+	ciop-log "INFO" "received the following input [${SLAVE}]"
 
-	# creates the directories for the file and the processing
-	mkdir ${UUIDTMP}/data/slaves/${SLAVE_ID}
-	mkdir ${UUIDTMP}/${PROJECT}/master_${SLAVE_ID}
+	# path and master/slave variable definition
+	UUID=`uuidgen`
+	UUIDTMP="/tmp/${UUID}"
 
-	ciop-log "INFO" "downloading slave [${slave}]"
-	SLAVE=`ciop-copy -f -O ${UUIDTMP}/data/slaves/${SLAVE_ID} ${slave}`
+	# creates the adore directory structure
+	ciop-log "INFO" "creating the directory structure [${UUIDTMP}]"
 
-	# writing the adore settings.set file
-	cat > ${UUIDTMP}/${PROJECT}/master_${SLAVE_ID}/settings.set <<EOF
-projectFolder="${UUIDTMP}/${PROJECT}/master_${SLAVE_ID}"
-runName="master_${SLAVE_ID}"
+	ciop-log "INFO" "basedir is ${UUIDTMP}"
+
+	# copies the ODR files
+	ciop-log "INFO" "copying the ODR files"
+	tar xvfz /application/adore/files/ODR.tgz -C /tmp &> /dev/null
+
+	# copies the master
+	ciop-log "INFO" "downloading master [${MASTER}]"
+	MASTER=`ciop-copy -f -O /tmp ${MASTER}`
+	res=$?
+	[ $res -ne 0 ] && exit $ERR_CURL
+
+	# let's check if the correct product was provided
+	[ "`head -10 ${MASTER} | grep "^PRODUCT" | tr -d '"' | cut -d "=" -f 2 | cut -c 1-10`" != "ASA_IMS_1P" ] && exit $ERR_WRONGPROD
+
+	ciop-log "INFO" "downloading slave [${SLAVE}]"
+	SLAVE=`ciop-copy -f -O /tmp ${SLAVE}`
+	res=$?
+	[ $res -ne 0 ] && exit $ERR_CURL
+
+	# let's check if the correct product was provided
+	[ "`head -10 ${SLAVE} | grep "^PRODUCT" | tr -d '"' | cut -d "=" -f 2 | cut -c 1-10`" != "ASA_IMS_1P" ] && exit $ERR_WRONGPROD
+
+	SLAVE_ID=`head -10 ${SLAVE} | grep "^PRODUCT" | tr -d '"' | cut -d "=" -f 2 | cut -c 15-22`
+
+	ciop-log "INFO" "creating dirs"
+	mkdir -p ${UUIDTMP}
+	mkdir ${UUIDTMP}/data
+	mkdir ${UUIDTMP}/data/master
+	mkdir ${UUIDTMP}/data/${SLAVE_ID}
+
+	# moves the files to the correct places
+	mv ${MASTER} ${UUIDTMP}/data/master/
+	MASTER=${UUIDTMP}/data/master/`basename ${MASTER}`
+	mv ${SLAVE} ${UUIDTMP}/data/${SLAVE_ID}/
+	SLAVE=${UUIDTMP}/data/${SLAVE_ID}/`basename ${SLAVE}`
+
+	# setting the adore settings.set file
+	cat > ${UUIDTMP}/settings.set <<EOF
+projectFolder="${UUIDTMP}"
+runName="${PROJECT}"
+master="master"
 slave="${SLAVE_ID}"
 scenes_include=( master ${SLAVE_ID} )
 dataFile="ASA_*.N1"
@@ -94,16 +108,16 @@ s_in_null="dummy"
 EOF
 
 	# ready to lauch adore
-	cd ${UUIDTMP}/${PROJECT}/master_${SLAVE_ID}
-	adore -u settings.set "m_readfiles; settings apply -r m_orbdir=${UUIDTMP}/ODR; m_porbits; s_readfiles; s_porbits; m_crop; s_crop; coarseorb; dem make SRTM3 50 LAquila; s raster_format; settings apply -r raster_format=png; raster a m_crop -- -M1/5; raster a s_crop -- -M1/5; m_simamp; m_timing; coarsecorr; fine; reltiming; demassist; coregpm; resample; interfero; comprefpha; subtrrefpha; comprefdem; subtrrefdem; coherence; raster p subtrrefdem -- -M4/4; raster p subtrrefpha -- -M4/4; raster p interfero -- -M4/4; raster p coherence -- -M4/4 -cgray -b"
+	cd ${UUIDTMP}
+	export ADORESCR=/opt/adore/scr; export PATH=${PATH}:${ADORESCR}:/usr/local/bin
+	adore -u settings.set "m_readfiles; s_readfiles; settings apply -r m_orbdir=/tmp/ODR; m_porbits; s_porbits; m_crop; s_crop; coarseorb; dem make SRTM3 50 LAquila; settings apply -r raster_format=png; raster a m_crop -- -M1/5; raster a s_crop -- -M1/5; m_simamp; m_timing; coarsecorr; fine; reltiming; demassist; coregpm; resample; interfero; comprefpha; subtrrefpha; comprefdem; subtrrefdem; coherence; raster p subtrrefdem -- -M4/4; raster p subtrrefpha -- -M4/4; raster p interfero -- -M4/4; raster p coherence -- -M4/4 -cgray -b"
 
-# removes unneeded files
-cd ${UUIDTMP}/${PROJECT}/master_${SLAVE_ID}
-rm -rf *.res *.hgt *.drs *.temp *.ps *.DEM
-ciop-publish -m cd ${UUIDTMP}/${PROJECT}/master_${SLAVE_ID}/*.*
+	# removes unneeded files
+	cd ${UUIDTMP}
+	rm -rf *.res *.hgt *.drs *.temp *.ps *.DEM
+	ciop-publish -m ${UUIDTMP}/*.*
 
-done
-
-#rm -rf ${UUIDTMP}
+	rm -rf ${UUIDTMP}
+done 
 
 ciop-log "INFO" "That's all folks"

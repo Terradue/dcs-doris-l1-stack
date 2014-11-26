@@ -48,8 +48,10 @@ do
 	ciop-log "INFO" "basedir is ${UUIDTMP}"
 
 	# copies the ODR files
-	ciop-log "INFO" "copying the ODR files"
-	tar xvfz /application/adore/files/ODR.tgz -C /tmp &> /dev/null
+	[ ! -e /tmp/ODR ] && {
+		ciop-log "INFO" "copying the ODR files"
+		tar xvfz /application/adore/files/ODR.tgz -C /tmp &> /dev/null
+	}
 
 	# copies the master
 	ciop-log "INFO" "downloading master [${MASTER}]"

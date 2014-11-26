@@ -119,6 +119,7 @@
 					</provides>
 					<requires>
 						<require>adore-t2</require>
+						<require>snaphu</require>
 					</requires>
 					<needarch>true</needarch>
 				</configuration>

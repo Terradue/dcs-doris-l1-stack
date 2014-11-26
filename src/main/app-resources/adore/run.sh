@@ -106,7 +106,7 @@ EOF
 	# ready to lauch adore
 	cd ${UUIDTMP}
 	export ADORESCR=/opt/adore/scr; export PATH=${PATH}:${ADORESCR}:/usr/local/bin
-	adore -u settings.set "m_readfiles; s_readfiles; settings apply -r m_orbdir=/tmp/ODR; m_porbits; s_porbits; m_crop; s_crop; coarseorb; dem make SRTM3 50 LAquila; settings apply -r raster_format=png; raster a m_crop -- -M1/5; raster a s_crop -- -M1/5; m_simamp; m_timing; coarsecorr; fine; reltiming; demassist; coregpm; resample; interfero; comprefpha; subtrrefpha; comprefdem; subtrrefdem; coherence; raster p subtrrefdem -- -M4/4; raster p subtrrefpha -- -M4/4; raster p interfero -- -M4/4; raster p coherence -- -M4/4 -cgray -b" &> /dev/stdout
+	adore -u settings.set "m_readfiles; s_readfiles; settings apply -r m_orbdir=/tmp/ODR; m_porbits; s_porbits; m_crop; s_crop; coarseorb; dem make SRTM3 50 LAquila; settings apply -r raster_format=png; raster a m_crop -- -M1/5; raster a s_crop -- -M1/5; m_simamp; m_timing; coarsecorr; fine; reltiming; demassist; coregpm; resample; interfero; comprefpha; subtrrefpha; comprefdem; subtrrefdem; coherence; unwrap; slant2h; geocode; raster p subtrrefdem -- -M4/4; raster p subtrrefpha -- -M4/4; raster p interfero -- -M4/4; raster p coherence -- -M4/4 -cgray -b" &> /dev/stdout
 
 	# removes unneeded files
 	cd ${UUIDTMP}

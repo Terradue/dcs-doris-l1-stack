@@ -17,11 +17,11 @@
     <node id="node_adore">
       <job id="adore" />
       <sources>
-        <source scope="runtime" id="adore_slave" title="ASAR slave url" abstract="Define the slave ASAR product to use with ADORE" refid="string:list">ftp://earthquake:earthquake@us-ext-nas.eo.esa.int/Abruzzo_09/ENVISAT/ASA_IMS_Date20090412_Time092427_00079_Orbit37207_1530.zip</source>
+        <source scope="runtime" id="adore_slave" title="ASAR slave url" abstract="Define the slave ASAR product to use with ADORE" refid="string:list">http://eo-virtual-archive4.esa.int/search/ASA_IMS_1P/ASA_IMS_1PNUPA20030916_195755_000000162020_00014_08084_3381.N1/rdf,http://eo-virtual-archive4.esa.int/search/ASA_IMS_1P/ASA_IMS_1PNUPA20031021_195750_000000162021_00014_08585_3389.N1/rdf</source>
       </sources>
       <parameters>
       	<parameter id="adore_project">LAquila</parameter>
-      	<parameter id="adore_master">ftp://earthquake:earthquake@us-ext-nas.eo.esa.int/Abruzzo_09/ENVISAT/ASA_IMS_1P_Date20090201_Time092428_00079_Orbit36205_2699.zip</parameter>
+      	<parameter id="adore_master">http://eo-virtual-archive4.esa.int/search/ASA_IMS_1P/ASA_IMS_1PNUPA20030708_195749_000000162018_00014_07082_3370.N1/rdf</parameter>
       </parameters>
     </node>
   </workflow>

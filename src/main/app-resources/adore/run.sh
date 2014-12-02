@@ -44,6 +44,9 @@ do
 
 	# creates the adore directory structure
 	ciop-log "INFO" "creating the directory structure [${UUIDTMP}]"
+	mkdir -p ${UUIDTMP}
+	mkdir ${UUIDTMP}/data
+	mkdir ${UUIDTMP}/data/master
 
 	ciop-log "INFO" "basedir is ${UUIDTMP}"
 
@@ -55,7 +58,7 @@ do
 
 	# copies the master
 	ciop-log "INFO" "downloading master [${MASTER}]"
-	MASTER=`ciop-copy -f -O /tmp ${MASTER}`
+	MASTER=`ciop-copy -f -O ${UUIDTMP}/data/master ${MASTER}`
 	res=$?
 	[ $res -ne 0 ] && exit $ERR_CURL
 
@@ -72,15 +75,10 @@ do
 
 	SLAVE_ID=`head -10 ${SLAVE} | grep "^PRODUCT" | tr -d '"' | cut -d "=" -f 2 | cut -c 15-22`
 
-	ciop-log "INFO" "creating dirs"
-	mkdir -p ${UUIDTMP}
-	mkdir ${UUIDTMP}/data
-	mkdir ${UUIDTMP}/data/master
+	ciop-log "INFO" "creating SLAVE dir"
 	mkdir ${UUIDTMP}/data/${SLAVE_ID}
 
 	# moves the files to the correct places
-	mv ${MASTER} ${UUIDTMP}/data/master/
-	MASTER=${UUIDTMP}/data/master/`basename ${MASTER}`
 	mv ${SLAVE} ${UUIDTMP}/data/${SLAVE_ID}/
 	SLAVE=${UUIDTMP}/data/${SLAVE_ID}/`basename ${SLAVE}`
 

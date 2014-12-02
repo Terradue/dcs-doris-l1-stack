@@ -99,6 +99,7 @@ m_in_null="dummy"
 s_in_vol="dummy"
 s_in_lea="dummy"
 s_in_null="dummy"
+memory="4000"
 EOF
 
 	# ready to lauch adore
